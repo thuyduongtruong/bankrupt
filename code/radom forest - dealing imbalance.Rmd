@@ -1,0 +1,484 @@
+---
+title: "model for bankruptcy"
+author: "Duong"
+date: "3/31/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+setwd("D:/Thuy Duong/R/VBM-lecture/bankruptcy paper")
+library(readxl)
+#Dữ liệu
+data <-read_excel("dataedited.xlsx")
+#str(data)
+```
+
+
+
+
+
+```{r pressure, echo=FALSE}
+data$X1<-as.numeric(data$X1)
+data$X2<-as.numeric(data$X2)
+data$X3<-as.numeric(data$X3)
+data$X4<-as.numeric(data$X4)
+data$X5<-as.numeric(data$X5)
+data$X6<-as.numeric(data$X6)
+data$X7<-as.numeric(data$X7)
+data$X8<-as.numeric(data$X8)
+data$X9<-as.numeric(data$X9)
+data$X10<-as.numeric(data$X10)
+data$X11<-as.numeric(data$X11)
+data$X12<-as.numeric(data$X12)
+data$X13<-as.numeric(data$X13)
+data$X14<-as.numeric(data$X14)
+data$X15<-as.numeric(data$X15)
+data$X16<-as.numeric(data$X16)
+data$X17<-as.numeric(data$X17)
+data$X18<-as.numeric(data$X18)
+data$X19<-as.numeric(data$X19)
+data$X20<-as.numeric(data$X20)
+data$X21<-as.numeric(data$X21)
+data$X22<-as.numeric(data$X22)
+data$X23<-as.numeric(data$X23)
+data$X24<-as.numeric(data$X24)
+data$X25<-as.numeric(data$X25)
+data$X26<-as.numeric(data$X26)
+data$X27<-as.numeric(data$X27)
+data$X28<-as.numeric(data$X28)
+data$X29<-as.numeric(data$X29)
+data$X30<-as.numeric(data$X30)
+data$X31<-as.numeric(data$X31)
+data$X32<-as.numeric(data$X32)
+data$X33<-as.numeric(data$X33)
+data$X34<-as.numeric(data$X34)
+data$X35<-as.numeric(data$X35)
+data$X36<-as.numeric(data$X36)
+data$X37<-as.numeric(data$X37)
+```
+
+#
+```{r}
+
+data <- data[!(is.na(dataedit$Status)),]
+data$status <-as.factor(data$Status)
+summary(data)
+```
+#Library, chia data
+```{r}
+library(ggplot2)
+library(ModelGood)
+library(VIF)
+library(InformationValue)
+library(lmtest)
+library(survey)
+library(data.table)
+
+library(e1071)
+
+library(caret)
+library(DMwR)
+library(ROSE)
+
+# Training and testing
+set.seed(1234)
+ind <- sample(2, nrow(data), replace = TRUE, prob = c(0.8, 0.2))
+train.d <- data [ind == 1, ]
+test.d <- data [ind == 2, ]
+# Check bankrupt and nonbankrupt ratio
+#prop.table(table(train.d$status))
+#prop.table(table(test.d$sta))
+table(train.d$Status)
+table(test.d$Status)
+
+
+```
+
+
+
+
+# Random forest full bien
+```{r}
+library(randomForest)
+
+
+
+
+
+# Lựa chọn parameter
+#ntree: số tree
+#mtry: só variable sẽ lấy trong mỗi lần split
+model2 <- randomForest(Status ~ ., data = train.d, ntree = 500, mtry = 6, importance = TRUE)
+model2
+
+
+
+
+
+#model tuning
+#install.packages("caret") # dung de xac dinh hyper parameter
+library(caret)
+#install.packages("e1071")
+library(e1071)
+#Create control function for training with 10 folds and keep 3 folds for training. search method is grid.
+control <- trainControl(method='repeatedcv', 
+                        number=10, # so folds
+                        repeats=3, # 3 fold cho tap test
+                        search='grid')
+#create tunegrid with 15 values from 1:15 for mtry to tunning model. Our train function will change number of entry variable at each split according to tunegrid. 
+tunegrid <- expand.grid(.mtry = (1:10)) 
+
+rf_gridsearch <- train(status ~ ., 
+                       data = train.d,
+                       method = 'rf', # rf la random forest
+                       metric = 'Accuracy',
+                       tuneGrid = tunegrid)
+print(rf_gridsearch) # sau khi tim dc mtry thay lai vao mo hinh de du bao
+
+
+```
+
+# chay lai random forest full bien sau khi da turning
+```{r}
+library(randomForest)
+
+
+# Lựa chọn parameter
+#ntree: số tree
+#mtry: só variable sẽ lấy trong mỗi lần split
+model2 <- randomForest(status ~ ., data =train.d, ntree = 500, mtry = 1, importance = TRUE)
+model2
+# Ktra dự báo trên tập train
+predTrain <- predict(model2, train.d, type = "class")
+table(predTrain, train.d$status)  # ket qua 100% ACC
+
+ 
+# ktra dự báo trên tập validation
+predValid <- predict(model2, test.d, type = "class")
+mean(predValid == test.d$status)  # mo hinh bi overfit do ACC =0.6                  
+table(predValid,test.d$status)
+
+#variable importance
+varImpPlot(model2)
+
+
+
+
+```
+# random forest without ITD, L1
+```{r}
+
+library(randomForest)
+# Lựa chọn parameter
+#ntree: số tree
+#mtry: só variable sẽ lấy trong mỗi lần split
+model2 <- randomForest(status ~ TAT+ATD+DTR+L2+L3+ROA+ROE+ROS+ROI+LRR+WAR+LP+DE+DA+FL+DIR+DCR+ACR+BL, data = train.d, ntree = 500, mtry = 6, importance = TRUE)
+model2
+
+
+#model tuning
+#install.packages("caret") # dung de xac dinh hyper parameter
+library(caret)
+#install.packages("e1071")
+library(e1071)
+#Create control function for training with 10 folds and keep 3 folds for training. search method is grid.
+control <- trainControl(method='repeatedcv', 
+                        number=10, # so folds
+                        repeats=3, # 3 fold cho tap test
+                        search='grid')
+#create tunegrid with 15 values from 1:15 for mtry to tunning model. Our train function will change number of entry variable at each split according to tunegrid. 
+tunegrid <- expand.grid(.mtry = (1:10)) 
+
+rf_gridsearch <- train(status ~ TAT+ATD+DTR+L1+L2+L3+ROA+ROE+ROS+ROI+LRR+WAR+LP+DE+DA+FL+DIR+DCR+ACR+BL, 
+                       data = train.d,
+                       method = 'rf', # rf la random forest
+                       metric = 'Accuracy',
+                       tuneGrid = tunegrid)
+print(rf_gridsearch) # sau khi tim dc mtry thay lai vao mo hinh de du bao
+```
+# chay lai random forest sau khi turning va test without ITD, l1
+```{r}
+library(randomForest)
+
+
+# Lựa chọn parameter
+#ntree: số tree
+#mtry: só variable sẽ lấy trong mỗi lần split
+model2 <- randomForest(status ~ TAT + ATD + DTR  + L2 + L3 +ROA + ROE + ROS + ROI + LRR + WAR + LP + DE + DA + FL + DIR +DCR + ACR + BL, data = train.d, ntree = 500, mtry = 2, importance = TRUE)
+model2
+# Ktra dự báo trên tập train
+predTrain <- predict(model2, train.d, type = "class")
+table(predTrain, train.d$status)  # ket qua 100% ACC
+
+ 
+# ktra dự báo trên tập validation
+predValid <- predict(model2, test.d, type = "class")
+mean(predValid == test.d$status)  # mo hinh bi overfit do ACC =0.6                  
+table(predValid,test.d$status)
+
+#variable importance
+varImpPlot(model2)
+
+
+
+```
+# random forest without L1, l2
+```{r}
+library(randomForest)
+# Lựa chọn parameter
+#ntree: số tree
+#mtry: só variable sẽ lấy trong mỗi lần split
+model2 <- randomForest(status ~ TAT+ATD+DTR+ITD+L3+ROA+ROE+ROS+ROI+LRR+WAR+LP+DE+DA+FL+DIR+DCR+ACR+BL, data = train.d, ntree = 500, mtry = 6, importance = TRUE)
+model2
+
+
+#model tuning
+#install.packages("caret") # dung de xac dinh hyper parameter
+#library(caret)
+#install.packages("e1071")
+#library(e1071)
+#Create control function for training with 10 folds and keep 3 folds for training. search method is grid.
+control <- trainControl(method='repeatedcv', 
+                        number=10, # so folds
+                        repeats=3, # 3 fold cho tap test
+                        search='grid')
+#create tunegrid with 15 values from 1:15 for mtry to tunning model. Our train function will change number of entry variable at each split according to tunegrid. 
+tunegrid <- expand.grid(.mtry = (1:10)) 
+
+rf_gridsearch <- train(status ~ TAT+ATD+DTR+ITD+L3+ROA+ROE+ROS+ROI+LRR+WAR+LP+DE+DA+FL+DIR+DCR+ACR+BL, 
+                       data = train.d,
+                       method = 'rf', # rf la random forest
+                       metric = 'Accuracy',
+                       tuneGrid = tunegrid)
+print(rf_gridsearch) # sau khi tim dc mtry thay lai vao mo hinh de du bao
+```
+#radom forest sau khi da mtry no L1, l2
+```{r}
+library(randomForest)
+
+
+# Lựa chọn parameter
+#ntree: số tree
+#mtry: só variable sẽ lấy trong mỗi lần split
+model2 <- randomForest(status ~ TAT + ATD + DTR +ITD  + L3 +ROA + ROE + ROS + ROI + LRR + WAR + LP + DE + DA + FL + DIR +DCR + ACR + BL, data = train.d, ntree = 500, mtry = 2, importance = TRUE)
+model2
+# Ktra dự báo trên tập train
+predTrain <- predict(model2, train.d, type = "class")
+table(predTrain, train.d$status)  # ket qua 100% ACC
+
+ 
+# ktra dự báo trên tập validation
+predValid <- predict(model2, test.d, type = "class")
+mean(predValid == test.d$status)  # mo hinh bi overfit do ACC =0.6                  
+table(predValid,test.d$status)
+
+#variable importance
+varImpPlot(model2)
+
+
+```
+# random forest no L2, ITD
+```{r}
+
+library(randomForest)
+# Lựa chọn parameter
+#ntree: số tree
+#mtry: só variable sẽ lấy trong mỗi lần split
+model2 <- randomForest(status ~ TAT+ATD+DTR+L1+L3+ROA+ROE+ROS+ROI+LRR+WAR+LP+DE+DA+FL+DIR+DCR+ACR+BL, data = train.d, ntree = 500, mtry = 6, importance = TRUE)
+model2
+
+
+#model tuning
+#install.packages("caret") # dung de xac dinh hyper parameter
+library(caret)
+#install.packages("e1071")
+#library(e1071)
+#Create control function for training with 10 folds and keep 3 folds for training. search method is grid.
+control <- trainControl(method='repeatedcv', 
+                        number=10, # so folds
+                        repeats=3, # 3 fold cho tap test
+                        search='grid')
+#create tunegrid with 15 values from 1:15 for mtry to tunning model. Our train function will change number of entry variable at each split according to tunegrid. 
+tunegrid <- expand.grid(.mtry = (1:10)) 
+
+rf_gridsearch <- train(status ~ TAT+ATD+DTR+L1+L3+ROA+ROE+ROS+ROI+LRR+WAR+LP+DE+DA+FL+DIR+DCR+ACR+BL, 
+                       data = train.d,
+                       method = 'rf', # rf la random forest
+                       metric = 'Accuracy',
+                       tuneGrid = tunegrid)
+print(rf_gridsearch) # sau khi tim dc mtry thay lai vao mo hinh de du bao
+```
+# radom forest sau khi mtry no L2, ITD
+```{r}
+
+library(randomForest)
+
+
+# Lựa chọn parameter
+#ntree: số tree
+#mtry: só variable sẽ lấy trong mỗi lần split
+model2 <- randomForest(status ~ TAT + ATD + DTR  + L1 + L3 +ROA + ROE + ROS + ROI + LRR + WAR + LP + DE + DA + FL + DIR +DCR + ACR + BL, data = train.d, ntree = 500, mtry = 2, importance = TRUE)
+model2
+# Ktra dự báo trên tập train
+predTrain <- predict(model2, train.d, type = "class")
+table(predTrain, train.d$status)  # ket qua 100% ACC
+
+ 
+# ktra dự báo trên tập validation
+predValid <- predict(model2, test.d, type = "class")
+mean(predValid == test.d$status)  # mo hinh bi overfit do ACC =0.6                  
+table(predValid,test.d$status)
+
+#variable importance
+varImpPlot(model2)
+
+
+```
+
+# random forest voi lasso
+```{r}
+
+library(randomForest)
+# Lựa chọn parameter
+#ntree: số tree
+#mtry: só variable sẽ lấy trong mỗi lần split
+model2 <- randomForest(status ~ TAT+ATD+DTR+ITD+L1+L3+L2+ROE+ROS+LP+DA+FL+DIR+DCR+BL, data = train.d, ntree = 500, mtry = 6, importance = TRUE)
+model2
+
+
+#model tuning
+#install.packages("caret") # dung de xac dinh hyper parameter
+library(caret)
+#install.packages("e1071")
+#library(e1071)
+#Create control function for training with 10 folds and keep 3 folds for training. search method is grid.
+control <- trainControl(method='repeatedcv', 
+                        number=10, # so folds
+                        repeats=3, # 3 fold cho tap test
+                        search='grid')
+#create tunegrid with 15 values from 1:15 for mtry to tunning model. Our train function will change number of entry variable at each split according to tunegrid. 
+tunegrid <- expand.grid(.mtry = (1:10)) 
+
+rf_gridsearch <- train(status ~ TAT+ATD+DTR+ITD+L1+L3+L2+ROE+ROS+LP+DA+FL+DIR+DCR+BL, 
+                       data = train.d,
+                       method = 'rf', # rf la random forest
+                       metric = 'Accuracy',
+                       tuneGrid = tunegrid)
+print(rf_gridsearch) # sau khi tim dc mtry thay lai vao mo hinh de du bao
+```
+# chay random forest voi lsso sau khi mtry
+```{r}
+
+library(randomForest)
+
+
+# Lựa chọn parameter
+#ntree: số tree
+#mtry: só variable sẽ lấy trong mỗi lần split
+model2 <- randomForest(status ~ TAT+ATD+DTR+ITD+L1+L3+L2+ROE+ROS+LP+DA+FL+DIR+DCR+BL, data = train.d, ntree = 500, mtry = 2, importance = TRUE)
+model2
+# Ktra dự báo trên tập train
+predTrain <- predict(model2,train.d, type = "class")
+table(predTrain, train.d$status)  # ket qua 100% ACC
+
+ 
+# ktra dự báo trên tập validation
+predValid <- predict(model2, test.d, type = "class")
+mean(predValid == test.d$status) 
+table(predValid,test.d$status)
+
+#variable importance
+varImpPlot(model2)
+
+
+```
+#random forest no activity
+```{r}
+library(randomForest)
+
+library(e1071)  
+
+
+library(caret)
+library(DMwR)
+library(ROSE)
+
+model2 <- randomForest(status ~ L1 + L2 + L3 + ROA + ROE + ROS +      ROI + LRR + WAR + LP + DE + DA + FL + DIR + DCR + ACR + BL, data = train.d, ntree = 500, mtry = 2, importance = TRUE)
+model2
+# Ktra dự báo trên tập train
+predTrain <- predict(model2, train.d, type = "class")
+table(predTrain, train.d$status)  # ket qua 100% ACC
+
+ 
+# ktra dự báo trên tập validation
+predValid <- predict(model2, test.d, type = "class")
+mean(predValid == test.d$status)  # mo hinh bi overfit do ACC =0.6                  
+table(predValid,test.d$status)
+
+#variable importance
+varImpPlot(model2)
+varImp(model2)
+
+```
+#radom forest no liquidity
+```{r echo=TRUE}
+library(randomForest)
+
+
+# Lựa chọn parameter
+#ntree: số tree
+#mtry: só variable sẽ lấy trong mỗi lần split
+model2 <- randomForest(status ~ TAT+ATD+DTR+ITD + ROA + ROE + ROS +      ROI + LRR + WAR + LP + DE + DA + FL + DIR + DCR + ACR + BL, data = train.d, ntree = 500, mtry = 1, importance = TRUE)
+model2
+# Ktra dự báo trên tập train
+predTrain <- predict(model2, train.d, type = "class")
+table(predTrain, train.d$status)  # ket qua 100% ACC
+
+ 
+# ktra dự báo trên tập validation
+predValid <- predict(model2, test.d, type = "class")
+mean(predValid == test.d$status)  # mo hinh bi overfit do ACC =0.6                  
+table(predValid,test.d$status)
+
+#variable importance
+varImpPlot(model2)
+
+```
+#radom forest no profitability
+```{r echo=TRUE}
+library(randomForest)
+model2 <- randomForest(status ~ TAT+ATD+DTR+ITD +L1 +L2 +L3  + DE + DA + FL + DIR + DCR + ACR + BL, data = train.d, ntree = 500, mtry = 2, importance = TRUE)
+model2
+# Ktra dự báo trên tập train
+predTrain <- predict(model2, train.d, type = "class")
+table(predTrain, train.d$status)  # ket qua 100% ACC
+
+ 
+# ktra dự báo trên tập validation
+predValid <- predict(model2, test.d, type = "class")
+mean(predValid == test.d$status)  # mo hinh bi overfit do ACC =0.6                  
+table(predValid,test.d$status)
+
+#variable importance
+varImpPlot(model2)
+```
+#radom forest no solvency
+```{r echo=TRUE}
+library(randomForest)
+model2 <- randomForest(status ~ TAT + ATD + DTR + ITD + L1 +      L2 + L3 + ROA + ROE + ROS + ROI + LRR + WAR, data = train.d, ntree = 500, mtry = 1, importance = TRUE)
+model2
+# Ktra dự báo trên tập train
+predTrain <- predict(model2, train.d, type = "class")
+table(predTrain, train.d$status)  # ket qua 100% ACC
+
+ 
+# ktra dự báo trên tập validation
+predValid <- predict(model2, test.d, type = "class")
+mean(predValid == test.d$status)  # mo hinh bi overfit do ACC =0.6                  
+table(predValid,test.d$status)
+
+#variable importance
+varImpPlot(model2)
+
+```
+
