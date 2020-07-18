@@ -1,0 +1,170 @@
+---
+title: "model for bankruptcy"
+author: "Duong"
+date: "3/31/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+setwd("D:/Thuy Duong/R/VBM-lecture/bankruptcy paper")
+library(readxl)
+#Dữ liệu
+data <-read_excel("dataedited.xlsx")
+#str(dataedit)
+```
+
+
+
+
+```{r pressure, echo=FALSE}
+data$X1<-as.numeric(data$X1)
+data$X2<-as.numeric(data$X2)
+data$X3<-as.numeric(data$X3)
+data$X4<-as.numeric(data$X4)
+data$X5<-as.numeric(data$X5)
+data$X6<-as.numeric(data$X6)
+data$X7<-as.numeric(data$X7)
+data$X8<-as.numeric(data$X8)
+data$X9<-as.numeric(data$X9)
+data$X10<-as.numeric(data$X10)
+data$X11<-as.numeric(data$X11)
+data$X12<-as.numeric(data$X12)
+data$X13<-as.numeric(data$X13)
+data$X14<-as.numeric(data$X14)
+data$X15<-as.numeric(data$X15)
+data$X16<-as.numeric(data$X16)
+data$X17<-as.numeric(data$X17)
+data$X18<-as.numeric(data$X18)
+data$X19<-as.numeric(data$X19)
+data$X20<-as.numeric(data$X20)
+data$X21<-as.numeric(data$X21)
+data$X22<-as.numeric(data$X22)
+data$X23<-as.numeric(data$X23)
+data$X24<-as.numeric(data$X24)
+data$X25<-as.numeric(data$X25)
+data$X26<-as.numeric(data$X26)
+data$X27<-as.numeric(data$X27)
+data$X28<-as.numeric(data$X28)
+data$X29<-as.numeric(data$X29)
+data$X30<-as.numeric(data$X30)
+data$X31<-as.numeric(data$X31)
+
+
+```
+
+#
+```{r}
+#data <- data[!(is.na(data$Status)),]
+data$Status <-as.factor(data$Status)
+#summary(data)
+```
+#Library, chia data
+```{r}
+library(ggplot2)
+library(ModelGood)
+library(VIF)
+library(InformationValue)
+library(lmtest)
+library(survey)
+library(data.table)
+library(e1071)
+
+
+
+
+library(caret)
+library(DMwR)
+
+# Training and testing
+set.seed(1234)
+ind <- sample(2, nrow(data), replace = TRUE, prob = c(0.7, 0.3))
+train.d <- data [ind == 1, ]
+test.d <- data [ind == 2, ]
+# Check bankrupt and nonbankrupt ratio
+#prop.table(table(train.d$status))
+#prop.table(table(test.d$sta))
+table(train.d$Status)
+table(test.d$Status)
+
+
+```
+
+
+
+
+# decision tree theo full bien
+```{r echo=TRUE}
+#Biến đổi dữ liệu
+
+
+library ("party")
+
+myFormula <- Status~X1+X2+X3+X4+X5+ X6+ X7+ X8 +X9+ X10 +X11+ X12 +X13+ X14+ X15+ X16+ X17 +X18+ X19+ X20 +X21+ X22+ X23+ X24+ X25+ X26+ X27+ X28+ X29+ X30+ X31 
+
+banksd_ctree <- ctree(myFormula, data = train.d)
+
+print(banksd_ctree) 
+nodes(banksd_ctree, 2) 
+
+
+#plot the tree
+#plot(banksd_ctree)
+
+
+
+
+#Đánh giá mô hình trên tập training
+table(predict(banksd_ctree), train.d$Status) # bang ket qua du bao
+#prop.table(table(predict(banksd_ctree), train.d$status)) # tinh xs du bao 
+
+
+#Đánh giá mô hình trên tập test
+testPred <- predict(banksd_ctree, newdata = test.d)
+
+table(testPred, test.d$Status) # so sanh gia tri thuc te va gia tri du bao
+accuracy=mean(testPred==test.d$Status)
+print(accuracy)
+
+
+
+
+```
+#decision tree voi bien theo lasso
+```{r echo=TRUE}
+
+
+library ("party")
+
+myFormula <- Status~X5+  X7 + X15+X21+ X28
+
+banksd_ctree <- ctree(myFormula, data = train.d)
+
+print(banksd_ctree) 
+nodes(banksd_ctree, 2) 
+
+
+#plot the tree
+#plot(banksd_ctree)
+
+
+
+
+#Đánh giá mô hình trên tập training
+table(predict(banksd_ctree), train.d$Status) # bang ket qua du bao
+prop.table(table(predict(banksd_ctree), train.d$Status)) # tinh xs du bao 
+
+
+#Đánh giá mô hình trên tập test
+testPred <- predict(banksd_ctree, newdata = test.d)
+#testPred <- predict(bds_ctree, newdata = test.data, type ="prob")# du bao theo xs
+table(testPred, test.d$Status) # so sanh gia tri thuc te va gia tri du bao
+accuracy=mean(testPred==test.d$Status)
+print(accuracy)
+
+
+
+```
+
+
+
+
