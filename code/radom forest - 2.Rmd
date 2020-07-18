@@ -1,0 +1,250 @@
+---
+title: "model for bankruptcy"
+author: "Duong-Trung"
+date: "17/7/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+setwd("D:/Thuy Duong/R/VBM-lecture/bankruptcy paper")
+library(readxl)
+#Dữ liệu
+data <-read_excel("data no missing.xlsx")
+#str(data)
+```
+
+
+
+
+
+```{r pressure, echo=FALSE}
+data$X1<-as.numeric(data$X1)
+data$X2<-as.numeric(data$X2)
+data$X3<-as.numeric(data$X3)
+data$X4<-as.numeric(data$X4)
+data$X5<-as.numeric(data$X5)
+data$X6<-as.numeric(data$X6)
+data$X7<-as.numeric(data$X7)
+data$X8<-as.numeric(data$X8)
+data$X9<-as.numeric(data$X9)
+data$X10<-as.numeric(data$X10)
+data$X11<-as.numeric(data$X11)
+data$X12<-as.numeric(data$X12)
+data$X13<-as.numeric(data$X13)
+data$X14<-as.numeric(data$X14)
+data$X15<-as.numeric(data$X15)
+data$X16<-as.numeric(data$X16)
+data$X17<-as.numeric(data$X17)
+data$X18<-as.numeric(data$X18)
+data$X19<-as.numeric(data$X19)
+data$X20<-as.numeric(data$X20)
+data$X21<-as.numeric(data$X21)
+data$X22<-as.numeric(data$X22)
+data$X23<-as.numeric(data$X23)
+data$X24<-as.numeric(data$X24)
+data$X25<-as.numeric(data$X25)
+data$X26<-as.numeric(data$X26)
+data$X27<-as.numeric(data$X27)
+data$X28<-as.numeric(data$X28)
+data$X29<-as.numeric(data$X29)
+data$X30<-as.numeric(data$X30)
+data$X31<-as.numeric(data$X31)
+
+```
+
+#
+```{r}
+
+#data <- data[!(is.na(data$Status)),]
+data$Status <-as.factor(data$Status)
+#summary(data)
+```
+#Library, chia data
+```{r}
+library(ggplot2)
+library(ModelGood)
+library(VIF)
+library(InformationValue)
+library(lmtest)
+library(survey)
+library(data.table)
+
+library(e1071)
+
+library(caret)
+library(DMwR)
+library(ROSE)
+
+# Training and testing
+set.seed(1234)
+ind <- sample(2, nrow(data), replace = TRUE, prob = c(0.7, 0.3))
+train.d <- data [ind == 1, ]
+test.d <- data [ind == 2, ]
+# Check bankrupt and nonbankrupt ratio
+#prop.table(table(train.d$status))
+#prop.table(table(test.d$sta))
+table(train.d$Status)
+table(test.d$Status)
+
+
+```
+
+
+
+
+# Random forest full bien
+```{r}
+library(randomForest)
+
+
+rfmod=randomForest(Status ~ X1+X2+X3+X4+X5+ X6+ X7+ X8 +X9+ X10 +X11+ X12 +X13+ X14+ X15+ X16+ X17 +X18+ X19+ X20 +X21+ X22+ X23+ X24+ X25+ X26+ X27+ X28+ X29+ X30+ X31,
+                   data=train.d,
+                   ntree=500,
+                   mtry=sqrt(9),
+                   replace=TRUE,
+                   localImp=TRUE)
+
+rfmod
+
+
+# Ktra dự báo trên tập train
+predTrain <- predict(rfmod, train.d, type = "class")
+table(predTrain, train.d$Status)  # ket qua 100% ACC
+
+ 
+# ktra dự báo trên tập validation
+predValid <- predict(rfmod, test.d, type = "class")
+mean(predValid == test.d$Status)  
+
+table(predValid,test.d$Status)
+
+#variable importance
+varImpPlot(rfmod)
+
+
+
+
+```
+
+```{r}
+library(tidyverse)
+
+names(data)=c("X1",
+            "X2","X3", "X4", "X5", "X6", "X7", "X8", "X9",            "X10", "X11", "X12", "X13", "X14", "X15","X16",             "X17", "X18", "X19", "X20", "X21", "X22",                  "X23", "X24", "X25","X26", "X27", "X28", "X29",              "X30", "X31", "Status")
+            
+rfmod=randomForest(Status ~ X1+X2+X3+X4+X5+ X6+ X7+ X8 +X9+ X10 +X11+ X12 +X13+ X14+ X15+ X16+ X17 +X18+ X19+ X20 +X21+ X22+ X23+ X24+ X25+ X26+ X27+ X28+ X29+ X30+ X31,
+                   data=train.d,
+                   ntree=500,
+                   mtry=sqrt(9),
+                   replace=TRUE,
+                   localImp=TRUE)
+
+rfmod
+varImp(rfmod)%>%as.data.frame()%>%
+  mutate(Feature=rownames(.))%>%
+  gather("1","0",key="Label",value="Importance")%>%
+  mutate(Importance=100*Importance/max(.$Importance))%>%
+  ggplot(aes(x=reorder(Feature,Importance),
+             y=Importance,
+             fill=Importance,
+             color=Importance))+
+  geom_segment(aes(x=reorder(Feature,Importance),
+               xend=Feature,
+               y=0,
+               yend=Importance),
+               size=1,
+               show.legend = F)+
+  geom_point(size=2,show.legend = F)+
+  scale_x_discrete("Features")+
+  coord_flip()+
+  scale_fill_gradient(low="blue",high="red")+
+  scale_color_gradient(low="blue",high="red")+
+  geom_text(aes(label = round(Importance,1)),
+            vjust=-0.5,size=3)+
+  facet_wrap(~Label,ncol=2,scales="free")+
+  theme_bw(base_family = "mono",8)
+```
+
+# random forest voi lasso
+```{r}
+
+library(randomForest)
+
+
+rfmod=randomForest(Status ~ X5+ X9+ X13+ X14+ X15 +X18+X21+  X28+  X31 ,
+                   data=train.d,
+                   ntree=500,
+                   mtry=sqrt(9),
+                   replace=TRUE,
+                   localImp=TRUE)
+
+rfmod
+
+
+# Ktra dự báo trên tập train
+predTrain <- predict(rfmod, train.d, type = "class")
+table(predTrain, train.d$Status)  # ket qua 100% ACC
+
+ 
+# ktra dự báo trên tập validation
+predValid <- predict(rfmod, test.d, type = "class")
+mean(predValid == test.d$Status)  
+
+table(predValid,test.d$Status)
+
+#variable importance
+varImpPlot(rfmod)
+
+names(data)=c( "X5",  "X9", "X13", "X14", "X15", "X18",                 "X21", "X28",   "X31", "Status")
+varImp(rfmod)%>%as.data.frame()%>%
+  mutate(Feature=rownames(.))%>%
+  gather("1","0",key="Label",value="Importance")%>%
+  mutate(Importance=100*Importance/max(.$Importance))%>%
+  ggplot(aes(x=reorder(Feature,Importance),
+             y=Importance,
+             fill=Importance,
+             color=Importance))+
+  geom_segment(aes(x=reorder(Feature,Importance),
+               xend=Feature,
+               y=0,
+               yend=Importance),
+               size=1,
+               show.legend = F)+
+  geom_point(size=2,show.legend = F)+
+  scale_x_discrete("Features")+
+  coord_flip()+
+  scale_fill_gradient(low="blue",high="red")+
+  scale_color_gradient(low="blue",high="red")+
+  geom_text(aes(label = round(Importance,1)),
+            vjust=-0.5,size=3)+
+  facet_wrap(~Label,ncol=2,scales="free")+
+  theme_bw(base_family = "mono",8)
+```
+# chay random forest voi lsso sau khi mtry
+```{r}
+
+library(randomForest)
+
+
+# Lựa chọn parameter
+#ntree: số tree
+#mtry: só variable sẽ lấy trong mỗi lần split
+model2 <- randomForest(Status ~ X5+  X7 + X15+X21+ X28, data = train.d, ntree = 500, mtry = 2, importance = TRUE)
+model2
+# Ktra dự báo trên tập train
+predTrain <- predict(model2,train.d, type = "class")
+table(predTrain, train.d$Status)  # ket qua 100% ACC
+
+ 
+# ktra dự báo trên tập validation
+predValid <- predict(model2, test.d, type = "class")
+mean(predValid == test.d$Status) 
+table(predValid,test.d$Status)
+
+#variable importance
+varImpPlot(model2)
+
+
+```
+
+
