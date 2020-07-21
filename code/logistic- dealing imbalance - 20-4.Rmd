@@ -29,9 +29,20 @@ library(ROSE)
 
 #Training and testing
 set.seed(1234)
-ind <- sample(2, nrow(data_organised), replace = TRUE, prob = c(0.7, 0.3))
-train.d <- data_organised [ind == 1, ]
-test.d <- data_organised [ind == 2, ]
+# sample theo row
+# ind <- sample(2, nrow(data), replace = TRUE, prob = c(0.7, 0.3))
+# train.d <- data [ind == 1, ]
+# test.d <- data [ind == 2, ]
+# sample theo company
+ind_com <- sample(2,nrow(tick_num)/3,replace = TRUE,prob = c(0.7,0.3))
+num_firms <- unique(tick_num[,1])
+train_lot <- num_firms[ind_com==1]
+test_lot <- num_firms[ind_com==2]
+train.d_lot <- tick_num[is.element(tick_num[,1],train_lot),2]
+test.d_lot <- tick_num[is.element(tick_num[,1],test_lot),2]
+
+train.d <- data[train.d_lot,]
+test.d <- data [test.d_lot,]
 # Check bankrupt and nonbankrupt ratio
 #prop.table(table(train.d$status))
 #prop.table(table(test.d$sta))
@@ -46,7 +57,7 @@ table(test.d$Status)
 ```{r echo=TRUE}
 
 #ctrl<-trainControl(method="cv", number=5)
-LogitMod <- glm(Status ~ X1+X2+X3+X4+X5+ X6+ X7+ X8 +X9+ X10 +X11+ X12 +X13+ X14+ X15+ X16+ X17 +X18+ X19+ X20 +X21+ X22+ X23+ X24+ X25+ X26+ X27+ X28+ X29+ X30+ X31 +X32 +X33+ X34 +X35+ X36+ X37, data=train.d,
+LogitMod <- glm(Status ~ ., data=train.d,
                 family=binomial(link="logit"))
                 #trControl = ctrl)  # build linear regression model on full data
 bw_LogitMod = step(LogitMod) # Backwards selection is the default
@@ -54,8 +65,9 @@ print(summary(bw_LogitMod))
 ```
 #logistic after stepwise
 ```{r echo=TRUE}
-LogitMod <- glm(status ~ X1+X2+X3+X4+X5+ X6+ X7+ X8 +X9+ X10 +X11+ X12 +X13+ X14+ X15+ X16+ X17 +X18+ X19+ X20 +X21+ X22+ X23+ X24+ X25+ X26+ X27+ X28+ X29+ X30+ X31 +X32 +X33+ X34 +X35+ X36+ X37, data=train.d, family=binomial(link="logit"))
+LogitMod <- glm(Status ~ X1+X2+X3+X4+X5+ X6+ X7+ X8 +X9+ X10 +X11+ X12 +X13+ X14+ X15+ X16+ X17 +X18+ X19+ X20 +X21+ X22+ X23+ X24+ X25+ X26+ X27+ X28+ X29+ X30+ X31 +X32 +X33+ X34 +X35+ X36+ X37, data=train.d, family=binomial(link="logit"))
 print(summary(LogitMod))
+# Tại sao ở đây lại là logistic after stepwise>ư
 
 # Wald test and LR test
 regTermTest(LogitMod, "ITD")

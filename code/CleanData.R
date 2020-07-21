@@ -54,8 +54,12 @@ for(i in 3:ncol(data_organised)){
   }
 }
 
+# create a column with name code
+tick_num <- foreach(i = 1:length(firm_names),.combine = "rbind")%do%{
+  ans = matrix(c(rep(i,3),(3*i-2):(3*i)),ncol = 2)
+}
 # Save data
 saveRDS(data,"data/data_raw_cleaned.rds")
 saveRDS(data_organised,"data/data_Organised.rds")
-rm(list = setdiff(ls(),c("data","data_organised","firm_names","br_name","nm_name","ratios")))
+rm(list = setdiff(ls(),c("data","data_organised","firm_names","br_name","nm_name","ratios","tick_num")))
 save.image("data/data_cleaned.RData")
