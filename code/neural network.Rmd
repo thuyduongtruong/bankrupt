@@ -1,0 +1,132 @@
+---
+title: "Neural network"
+author: "Duong Trung"
+date: "7/19/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cars}
+setwd("D:/Thuy Duong/R/VBM-lecture/bankruptcy paper")
+library(readxl)
+#Dữ liệu
+data <-read_excel("data no missing.xlsx")
+#str(data)
+```
+
+
+
+```{r pressure, echo=FALSE}
+data$X1<-as.numeric(data$X1)
+data$X2<-as.numeric(data$X2)
+data$X3<-as.numeric(data$X3)
+data$X4<-as.numeric(data$X4)
+data$X5<-as.numeric(data$X5)
+data$X6<-as.numeric(data$X6)
+data$X7<-as.numeric(data$X7)
+data$X8<-as.numeric(data$X8)
+data$X9<-as.numeric(data$X9)
+data$X10<-as.numeric(data$X10)
+data$X11<-as.numeric(data$X11)
+data$X12<-as.numeric(data$X12)
+data$X13<-as.numeric(data$X13)
+data$X14<-as.numeric(data$X14)
+data$X15<-as.numeric(data$X15)
+data$X16<-as.numeric(data$X16)
+data$X17<-as.numeric(data$X17)
+data$X18<-as.numeric(data$X18)
+data$X19<-as.numeric(data$X19)
+data$X20<-as.numeric(data$X20)
+data$X21<-as.numeric(data$X21)
+data$X22<-as.numeric(data$X22)
+data$X23<-as.numeric(data$X23)
+data$X24<-as.numeric(data$X24)
+data$X25<-as.numeric(data$X25)
+data$X26<-as.numeric(data$X26)
+data$X27<-as.numeric(data$X27)
+data$X28<-as.numeric(data$X28)
+data$X29<-as.numeric(data$X29)
+data$X30<-as.numeric(data$X30)
+data$X31<-as.numeric(data$X31)
+
+```
+```{r}
+#data <- data[!(is.na(data$Status)),]
+#data$Status <-as.factor(data$Status)
+summary(data)
+```
+
+```{r}
+
+data[6:36]<-scale(data[6:36]) # chuan hoa truc tiep standalized
+data <- as.data.frame(data)
+summary(data)
+```
+
+
+```{r}
+
+
+
+
+# Training and testing
+set.seed(1234)
+ind <- sample(2, nrow(data), replace = TRUE, prob = c(0.7, 0.3))
+train.d <- data [ind == 1, ]
+test.d <- data [ind == 2, ]
+# Check bankrupt and nonbankrupt ratio
+#prop.table(table(train.d$status))
+#prop.table(table(test.d$sta))
+table(train.d$Status)
+table(test.d$Status)
+
+```
+
+
+```{r}
+library(neuralnet)
+
+
+#Chay mô hình trên tập training
+
+# hidden=c(5,3)
+
+formula <- Status ~ X1+X2+X3+X4+X5+ X6+ X7+ X8 +X9+ X10 +X11+ X12 +X13+ X14+ X15+ X16+ X17 +X18+ X19+ X20 +X21+ X22+ X23+ X24+ X25+ X26+ X27+ X28+ X29+ X30+ X31
+nn <- neuralnet(formula, data = train.d, 
+              hidden=2, err.fct="ce", linear.output = FALSE)# hidden so node, ce la pp de tinhsao cho minimize error
+
+
+names(nn)
+
+#nn$net.result  #hiển thị xác suất phân loại dự đoán của mỗi đối tượng
+
+#nn$weights
+#nn$result.matrix
+plot(nn)
+
+
+
+#Đánh giá mô hình trên tập train
+mypredict<-neuralnet::compute(nn, nn$covariate)$net.result #$net.result la xs du bao
+mypredict<-apply(mypredict, c(1), round) # round lam tron xs de class, giong nhi gia tri cut off
+#mypredict
+table(mypredict, train.d$Status, dnn =c("Predicted", "Actual"))
+mean(mypredict==train.d$Status)
+
+
+
+#Đánh giá mô hình trên tập test
+testPred <- neuralnet::compute(nn, test.d[, 6:36])$net.result
+testPred<-apply(testPred, c(1), round)
+#testPred
+table(testPred, test.d$Status, dnn =c("Predicted", "Actual"))
+mean(testPred==test.d$Status)
+
+
+
+```
+
