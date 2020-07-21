@@ -44,12 +44,13 @@ data_organised <- foreach(i = 1:length(firm_names),.combine = "rbind")%do%{
 
 # Change the ratios columns to numeric
 data_organised <- as.data.frame(apply(data_organised,2,as.numeric))
-
+data <- as.data.frame(apply(data,2,as.numeric))
+data <- data[,2:ncol(data)]
 # Replace NAs with median
-for(i in 3:ncol(data)){
-  naLot <- which(is.na(data[,i]))
+for(i in 3:ncol(data_organised)){
+  naLot <- which(is.na(data_organised[,i]))
   if(length(naLot)>0){
-    data[naLot,i] = median(data[,i],na.rm = TRUE)
+    data_organised[naLot,i] = median(data_organised[,i],na.rm = TRUE)
   }
 }
 
