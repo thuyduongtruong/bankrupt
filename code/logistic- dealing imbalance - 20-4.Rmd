@@ -6,68 +6,10 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE, echo=TRUE}
-setwd("D:/Thuy Duong/R/VBM-lecture/bankruptcy paper")
-library(readxl)
-#Dữ liệu
-data <-read_excel("dataedited.xlsx")
-#str(data)
+# Read Data that are cleaned 
+load("data/data_cleaned.RData")
 ```
 
-```{r echo=TRUE}
-str(data)
-summary(data)
-```
-
-
-
-```{r pressure, echo=TRUE}
-data$X1<-as.numeric(data$X1)
-data$X2<-as.numeric(data$X2)
-data$X3<-as.numeric(data$X3)
-data$X4<-as.numeric(data$X4)
-data$X5<-as.numeric(data$X5)
-data$X6<-as.numeric(data$X6)
-data$X7<-as.numeric(data$X7)
-data$X8<-as.numeric(data$X8)
-data$X9<-as.numeric(data$X9)
-data$X10<-as.numeric(data$X10)
-data$X11<-as.numeric(data$X11)
-data$X12<-as.numeric(data$X12)
-data$X13<-as.numeric(data$X13)
-data$X14<-as.numeric(data$X14)
-data$X15<-as.numeric(data$X15)
-data$X16<-as.numeric(data$X16)
-data$X17<-as.numeric(data$X17)
-data$X18<-as.numeric(data$X18)
-data$X19<-as.numeric(data$X19)
-data$X20<-as.numeric(data$X20)
-data$X21<-as.numeric(data$X21)
-data$X22<-as.numeric(data$X22)
-data$X23<-as.numeric(data$X23)
-data$X24<-as.numeric(data$X24)
-data$X25<-as.numeric(data$X25)
-data$X26<-as.numeric(data$X26)
-data$X27<-as.numeric(data$X27)
-data$X28<-as.numeric(data$X28)
-data$X29<-as.numeric(data$X29)
-data$X30<-as.numeric(data$X30)
-data$X31<-as.numeric(data$X31)
-data$X32<-as.numeric(data$X32)
-data$X33<-as.numeric(data$X33)
-data$X34<-as.numeric(data$X34)
-data$X35<-as.numeric(data$X35)
-data$X36<-as.numeric(data$X36)
-data$X37<-as.numeric(data$X37)
-
-```
-
-#
-```{r echo=TRUE}
-
-data <- data[!(is.na(data$Status)),]
-data$Status <-as.factor(data$Status)
-#summary(data)
-```
 #Library, chia data
 ```{r echo=TRUE}
 library(ggplot2)
@@ -87,16 +29,14 @@ library(ROSE)
 
 #Training and testing
 set.seed(1234)
-ind <- sample(2, nrow(data), replace = TRUE, prob = c(0.8, 0.2))
-train.d <- data [ind == 1, ]
-test.d <- data [ind == 2, ]
+ind <- sample(2, nrow(data_organised), replace = TRUE, prob = c(0.7, 0.3))
+train.d <- data_organised [ind == 1, ]
+test.d <- data_organised [ind == 2, ]
 # Check bankrupt and nonbankrupt ratio
 #prop.table(table(train.d$status))
 #prop.table(table(test.d$sta))
 table(train.d$Status)
 table(test.d$Status)
-
-
 
 ```
 
