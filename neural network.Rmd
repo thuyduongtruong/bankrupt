@@ -1,0 +1,139 @@
+---
+title: "Neural network"
+author: "Duong Trung"
+date: "7/19/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cars}
+library(readxl)
+setwd("D:/Thuy Duong/R/VBM-lecture/bankruptcy paper/da ta")
+#load("C:/Users/NHATDUY/Dropbox/failure bank/bai viet/bankrupt/data/data_cleaned.RData")
+data<-read.csv("data1.csv")
+```
+
+
+
+```{r pressure, echo=FALSE}
+```
+```{r}
+
+```
+
+```{r}
+
+data[3:28]<-scale(data[3:28]) # chuan hoa truc tiep standalized
+#data <- as.data.frame(data)
+#summary(data)
+```
+
+
+```{r}
+
+
+data$X <- NULL
+data$YearReport<-NULL
+
+# Training and testing
+set.seed(1234)
+ind <- sample(2, nrow(data), replace = TRUE, prob = c(0.7, 0.3))
+train.d <- data [ind == 1, ]
+test.d <- data [ind == 2, ]
+# Check bankrupt and nonbankrupt ratio
+#prop.table(table(train.d$status))
+#prop.table(table(test.d$sta))
+table(train.d$Status)
+table(test.d$Status)
+
+```
+
+#Neural network full variables
+```{r}
+library(neuralnet)
+
+
+#Chay mô hình trên tập training
+
+# hidden=c(5,3)
+
+formula <- Status ~ .
+nn <- neuralnet(formula, data = train.d, 
+              hidden=2, err.fct="ce", linear.output = FALSE)# hidden so node, ce la pp de tinhsao cho minimize error
+
+
+names(nn)
+
+#nn$net.result  #hiển thị xác suất phân loại dự đoán của mỗi đối tượng
+
+#nn$weights
+#nn$result.matrix
+plot(nn)
+
+
+
+#Đánh giá mô hình trên tập train
+mypredict<-neuralnet::compute(nn, nn$covariate)$net.result #$net.result la xs du bao
+mypredict<-apply(mypredict, c(1), round) # round lam tron xs de class, giong nhi gia tri cut off
+#mypredict
+table(mypredict, train.d$Status, dnn =c("Predicted", "Actual"))
+mean(mypredict==train.d$Status)
+
+
+
+#Đánh giá mô hình trên tập test
+testPred <- neuralnet::compute(nn, test.d[, 2:27])$net.result
+testPred<-apply(testPred, c(1), round)
+#testPred
+table(testPred, test.d$Status, dnn =c("Predicted", "Actual"))
+mean(testPred==test.d$Status)
+
+
+
+```
+#Neural network Lasso
+
+```{r}
+library(neuralnet)
+
+
+#Chay mô hình trên tập training
+
+# hidden=c(5,3)
+
+formula <- Status ~ CASHMTA +CHLCT + X.EBIT...DP..AT + INVCHINVT + LCTAT + LTAT + LOG.AT. + MB   + OIADPAT + PRICE +QALCT + SALEAT +SIGMA+ WCAPAT
+nn <- neuralnet(formula, data = train.d, 
+              hidden=2, err.fct="ce", linear.output = FALSE)# hidden so node, ce la pp de tinhsao cho minimize error
+
+
+names(nn)
+
+#nn$net.result  #hiển thị xác suất phân loại dự đoán của mỗi đối tượng
+
+#nn$weights
+#nn$result.matrix
+plot(nn)
+
+
+
+#Đánh giá mô hình trên tập train
+mypredict<-neuralnet::compute(nn, nn$covariate)$net.result #$net.result la xs du bao
+mypredict<-apply(mypredict, c(1), round) # round lam tron xs de class, giong nhi gia tri cut off
+#mypredict
+table(mypredict, train.d$Status, dnn =c("Predicted", "Actual"))
+mean(mypredict==train.d$Status)
+
+
+
+#Đánh giá mô hình trên tập test
+testPred <- neuralnet::compute(nn, test.d[, 2:27])$net.result
+testPred<-apply(testPred, c(1), round)
+#testPred
+table(testPred, test.d$Status, dnn =c("Predicted", "Actual"))
+mean(testPred==test.d$Status)
+```
+

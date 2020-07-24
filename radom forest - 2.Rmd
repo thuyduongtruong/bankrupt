@@ -1,0 +1,195 @@
+---
+title: "model for bankruptcy"
+author: "Duong-Trung"
+date: "17/7/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+#setwd("D:/Thuy Duong/R/VBM-lecture/bankruptcy paper")
+
+library(readxl)
+setwd("D:/Thuy Duong/R/VBM-lecture/bankruptcy paper/da ta")
+#load("C:/Users/NHATDUY/Dropbox/failure bank/bai viet/bankrupt/data/data_cleaned.RData")
+data<-read.csv("data1.csv")
+```
+
+
+
+
+
+```{r pressure, echo=FALSE}
+str(data)
+
+```
+
+#
+```{r}
+
+#data <- data[!(is.na(data$Status)),]
+data$Status <-as.factor(data$Status)
+#summary(data)
+```
+#Library, chia data
+```{r}
+library(ggplot2)
+library(ModelGood)
+library(VIF)
+library(InformationValue)
+library(lmtest)
+library(survey)
+library(data.table)
+
+library(e1071)
+
+library(caret)
+library(DMwR)
+library(ROSE)
+
+data$X <- NULL
+data$YearReport<-NULL
+# Training and testing
+set.seed(1234)
+ind <- sample(2, nrow(data), replace = TRUE, prob = c(0.7, 0.3))
+train.d <- data [ind == 1, ]
+test.d <- data [ind == 2, ]
+# Check bankrupt and nonbankrupt ratio
+#prop.table(table(train.d$status))
+#prop.table(table(test.d$sta))
+#table(train.d$Status)
+#table(test.d$Status)
+
+
+```
+
+
+
+
+# Random forest full bien
+```{r}
+library(randomForest)
+
+
+rfmod=randomForest(Status ~ .,
+                   data=train.d,
+                   ntree=500,
+                   mtry=sqrt(9),
+                   replace=TRUE,
+                   localImp=TRUE)
+
+rfmod
+
+
+# Ktra dự báo trên tập train
+predTrain <- predict(rfmod, train.d, type = "class")
+table(predTrain, train.d$Status)  # ket qua 100% ACC
+
+ 
+# ktra dự báo trên tập validation
+predValid <- predict(rfmod, test.d, type = "class")
+mean(predValid == test.d$Status)  
+
+table(predValid,test.d$Status)
+
+#variable importance
+varImpPlot(rfmod)
+
+
+
+
+```
+
+```{r}
+library(tidyverse)
+
+#names(data)=c("APSALE",
+        #    "CASHMTA"," CHLCT"," EBITDPAT ", "EBITSALE", "INVCHINVT", "INVTSALE", "LC","TAT", "LCTLT", " LCTSALE", "LTAT",  "LOGAT", "LOGSALE", "MB", "NIMTA", "NISALE", "OIADPAT",  "OIADPSALE", "PRICE", "QALCT", "REAT", "RELCT", "RSIZE", "SALEAT", "SIGMA", "WCAPAT", "Status")
+            
+rfmod=randomForest(Status ~ .,
+                   data=train.d,
+                   ntree=500,
+                   mtry=sqrt(9),
+                   replace=TRUE,
+                   localImp=TRUE)
+
+rfmod
+varImp(rfmod)%>%as.data.frame()%>%
+  mutate(Feature=rownames(.))%>%
+  gather("1","0",key="Label",value="Importance")%>%
+  mutate(Importance=100*Importance/max(.$Importance))%>%
+  ggplot(aes(x=reorder(Feature,Importance),
+             y=Importance,
+             fill=Importance,
+             color=Importance))+
+  geom_segment(aes(x=reorder(Feature,Importance),
+               xend=Feature,
+               y=0,
+               yend=Importance),
+               size=1,
+               show.legend = F)+
+  geom_point(size=2,show.legend = F)+
+  scale_x_discrete("Features")+
+  coord_flip()+
+  scale_fill_gradient(low="blue",high="red")+
+  scale_color_gradient(low="blue",high="red")+
+  geom_text(aes(label = round(Importance,1)),
+            vjust=-0.5,size=3)+
+  facet_wrap(~Label,ncol=2,scales="free")+
+  theme_bw(base_family = "mono",8)
+```
+
+# random forest voi lasso
+```{r}
+library(randomForest)
+rfmod=randomForest(Status ~ CASHMTA +CHLCT + X.EBIT...DP..AT + INVCHINVT + LCTAT + LTAT + LOG.AT. + MB   + OIADPAT + PRICE +QALCT + SALEAT +SIGMA+ WCAPAT,
+                   data=train.d,
+                   ntree=500,
+                   mtry=sqrt(9),
+                   replace=TRUE,
+                   localImp=TRUE)
+
+rfmod
+
+
+# Ktra dự báo trên tập train
+predTrain <- predict(rfmod, train.d, type = "class")
+table(predTrain, train.d$Status)  # ket qua 100% ACC
+
+ 
+# ktra dự báo trên tập validation
+predValid <- predict(rfmod, test.d, type = "class")
+mean(predValid == test.d$Status)  
+
+table(predValid,test.d$Status)
+
+#variable importance
+varImpPlot(rfmod)
+
+
+
+
+
+varImp(rfmod)%>%as.data.frame()%>%
+  mutate(Feature=rownames(.))%>%
+  gather("1","0",key="Label",value="Importance")%>%
+  mutate(Importance=100*Importance/max(.$Importance))%>%
+  ggplot(aes(x=reorder(Feature,Importance),
+             y=Importance,
+             fill=Importance,
+             color=Importance))+
+  geom_segment(aes(x=reorder(Feature,Importance),
+               xend=Feature,
+               y=0,
+               yend=Importance),
+               size=1,
+               show.legend = F)+
+  geom_point(size=2,show.legend = F)+
+  scale_x_discrete("Features")+
+  coord_flip()+
+  scale_fill_gradient(low="blue",high="red")+
+  scale_color_gradient(low="blue",high="red")+
+  geom_text(aes(label = round(Importance,1)),
+            vjust=-0.5,size=3)+
+  facet_wrap(~Label,ncol=2,scales="free")+
+  theme_bw(base_family = "mono",8)
+```

@@ -1,0 +1,128 @@
+---
+title: "model for bankruptcy"
+author: "Duong- Trung"
+date: "17/7/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo=TRUE}
+
+
+library(readxl)
+setwd("D:/Thuy Duong/R/VBM-lecture/bankruptcy paper/da ta")
+#load("C:/Users/NHATDUY/Dropbox/failure bank/bai viet/bankrupt/data/data_cleaned.RData")
+data<-read.csv("data1.csv")
+```
+
+
+
+
+
+
+#
+```{r echo=TRUE}
+
+#data <- data[!(is.na(data$Status)),]
+#data$Status <-as.factor(data$Status)
+#summary(data)
+data$X <- NULL
+data$YearReport<-NULL
+```
+#Library, chia data
+```{r echo=TRUE}
+library(ggplot2)
+library(ModelGood)
+library(VIF)
+library(InformationValue)
+library(lmtest)
+library(survey)
+library(data.table)
+library(e1071)
+
+library(abind)
+# split data
+library(caret)
+library(DMwR)
+library(ROSE)
+
+#Training and testing
+set.seed(1234)
+ind <- sample(2, nrow(data), replace = TRUE, prob = c(0.7, 0.3))
+train.d <- data [ind == 1, ]
+test.d <- data [ind == 2, ]
+# Check bankrupt and nonbankrupt ratio
+#prop.table(table(train.d$status))
+#prop.table(table(test.d$sta))
+table(train.d$Status)
+table(test.d$Status)
+
+
+
+```
+
+```{r}
+#logistic full variables
+
+
+#ctrl<-trainControl(method="cv", number=5)
+LogitMod <- glm(Status ~ ., data=train.d,
+                family=binomial(link="logit"))
+                #trControl = ctrl)  # build linear regression model on full data
+bw_LogitMod = step(LogitMod) # Backwards selection is the default
+print(summary(bw_LogitMod))
+
+```
+
+#Estimate
+
+```{r echo=TRUE}
+
+
+library(caret)
+predict <- predict(LogitMod, test.d, type = 'response')
+
+## Create Confusion Matrix
+table(test.d$Status, predict > 0.5)
+library(ROCR)
+ROCRpred <- prediction(predict, test.d$Status)
+ROCRperf <- performance(ROCRpred, 'tpr','fpr')
+plot(ROCRperf, colorize = TRUE, text.adj = c(-0.2,1.7))
+
+#misClassError(test.d$status, predict, threshold = optCutOff)
+plotROC(test.d$Status, predict)
+
+```
+
+
+
+
+#logistic theolasso
+```{r echo=TRUE}
+# Mo hinh logit
+LogitMod <- glm(Status ~ CASHMTA +CHLCT + X.EBIT...DP..AT + INVCHINVT + LCTAT + LTAT + LOG.AT. + MB   + OIADPAT + PRICE +QALCT + SALEAT +SIGMA+ WCAPAT, data=train.d,
+                family=binomial(link="logit"))
+                #trControl = ctrl)  # build linear regression model on full data
+bw_LogitMod = step(LogitMod) # Backwards selection is the default
+print(summary(bw_LogitMod))
+
+library(caret)
+predict <- predict(LogitMod, test.d, type = 'response')
+
+## Create Confusion Matrix
+table(test.d$Status, predict > 0.5)
+library(ROCR)
+ROCRpred <- prediction(predict, test.d$Status)
+ROCRperf <- performance(ROCRpred, 'tpr','fpr')
+plot(ROCRperf, colorize = TRUE, text.adj = c(-0.2,1.7))
+
+#misClassError(test.d$status, predict, threshold = optCutOff)
+plotROC(test.d$Status, predict)
+
+
+
+```
+
+
+
+
+
